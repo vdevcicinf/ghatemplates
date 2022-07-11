@@ -1,24 +1,69 @@
-name: Run terraform init and plan
+name: Terraform init and plan
 
 on:
-  push:
-    paths-ignore:
-      - "**.md"
-    branches:
-      - main
-      - develop
-  jobs:
-    terraform:
-      uses: vdevcicinf/ghatemplates/.github/workflows/terraform.yaml@main
-      with:
-        strategy:
-          matrix:
-            if: github.ref == 'refs/heads/main'
-              tf_env: ["prod", "uat"]
-            if: github.ref == 'refs/heads/develop'
-              tf_env: ["dev"]
-        tf_actions_version: "1.2.4"
-        tf_actions_working_dir: "dev"
+  workflow_call:
+    inputs:
+      tf_actions_version:
+        required: true
+        type: string
+      tf_actions_working_dir:
+        required: true
+        type: string
+      tf_env:
+        required: true
+        type: string
+      tf_plan_args:
+        required: false
+        type: string
+        default: '-var-file="${{ inputs.tf_env }}.tfvars"'
+    secrets:
+      ARM_CLIENT_ID:
+        required: true
+      ARM_CLIENT_SECRET:
+        required: true
+      ARM_SUBSCRIPTION_ID:
+        required: true
+      ARM_TENANT_ID:
+        required: true
+jobs:
+  terraform:
+    name: "Terraform"
+    env:
+      ARM_CLIENT_ID: ${{ secrets.AZURE_AD_CLIENT_ID }}
+      ARM_CLIENT_SECRET: ${{ secrets.AZURE_AD_CLIENT_SECRET }}
+      ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      ARM_TENANT_ID: ${{ secrets.AZURE_AD_TENANT_ID }}
+    runs-on: ubuntu-latest
 
+    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
+    defaults:
+      run:
+        shell: bash
 
-      
+    steps:
+      # Checkout the repository to the GitHub Actions runner
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: "Terraform Format"
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ inputs.tf_actions_version }}
+          tf_actions_subcommand: "fmt"
+          tf_actions_working_dir: ${{ inputs.tf_actions_working_dir }}
+
+      - name: "Terraform Init"
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ inputs.tf_actions_version }}
+          tf_actions_subcommand: "init"
+          tf_actions_working_dir: ${{ inputs.tf_actions_working_dir }}
+          args: "-backend-config=${{ inputs.tf_env }}.init -reconfigure"
+
+      - name: "Terraform Plan"
+        uses: hashicorp/terraform-github-actions@master
+        with:
+          tf_actions_version: ${{ inputs.tf_actions_version }}
+          tf_actions_subcommand: "plan"
+          tf_actions_working_dir: ${{ inputs.tf_actions_working_dir }}
+          args: ${{ inputs.tf_plan_args }}

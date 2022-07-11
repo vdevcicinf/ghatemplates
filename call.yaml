@@ -1,0 +1,24 @@
+name: Run terraform init and plan
+
+on:
+  push:
+    paths-ignore:
+      - "**.md"
+    branches:
+      - main
+      - develop
+  jobs:
+    terraform:
+      uses: vdevcicinf/ghatemplates/.github/workflows/terraform.yaml@main
+      with:
+        strategy:
+          matrix:
+            if: github.ref == 'refs/heads/main'
+              tf_env: ["prod", "uat"]
+            if: github.ref == 'refs/heads/develop'
+              tf_env: ["dev"]
+        tf_actions_version: "1.2.4"
+        tf_actions_working_dir: "dev"
+
+
+      
