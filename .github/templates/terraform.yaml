@@ -15,7 +15,7 @@ on:
       tf_plan_args:
         required: false
         type: string
-        default: '-var-file="${{ inputs.tf_env }}.tfvars"'
+        default: '-var-file="${{ inputs.matrix.tf_env }}.tfvars"'
     secrets:
       ARM_CLIENT_ID:
         required: true
@@ -58,7 +58,7 @@ jobs:
           tf_actions_version: ${{ inputs.tf_actions_version }}
           tf_actions_subcommand: "init"
           tf_actions_working_dir: ${{ inputs.tf_actions_working_dir }}
-          args: "-backend-config=${{ inputs.tf_env }}.init -reconfigure"
+          args: "-backend-config=${{ inputs.matrix.tf_env }}.init -reconfigure"
 
       - name: "Terraform Plan"
         uses: hashicorp/terraform-github-actions@master
